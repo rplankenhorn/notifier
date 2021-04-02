@@ -48,37 +48,42 @@ const directCrawler = async (url) => {
 }
 
 (async () => {
-  while(true) {
-    const url = 'https://www.zocdoc.com/vaccine/search/IL?flavor=state-search';
-    const response = await directCrawler(url);
+  const url = 'https://www.zocdoc.com/vaccine/search/IL?flavor=state-search';
+  const response = await directCrawler(url);
 
-    const regex = /JSON\.parse\((.*)\);/gm;
+  console.log(`response: ${JSON.stringify(response)}`);
 
-    const matches = response.body.match(regex).map(match => {
-      let jsonString = match.replace('JSON.parse(\"', '');
-      jsonString = jsonString.replace('\");', '');
-      jsonString = jsonString.replace(/\\/g, '');
-      return JSON.parse(jsonString);
-    }).filter(match => Object.keys(match).length !== 0);
+  const regex = /JSON\.parse\((.*)\);/gm;
 
-    const { providerLocations } = matches[0].search.searchdata.search.data.search.searchResponse;
+  const matches = response.body.match(regex).map(match => {
+    let jsonString = match.replace('JSON.parse(\"', '');
+    jsonString = jsonString.replace('\");', '');
+    jsonString = jsonString.replace(/\\/g, '');
+    return JSON.parse(jsonString);
+  }).filter(match => Object.keys(match).length !== 0);
 
-    const nextAvailabilities = providerLocations.filter(location => location.nextAvailability.startTime !== '');
+  console.log(`matches: ${JSON.stringify(matches)}`);
 
-    if (nextAvailabilities.length > 0) {
-      const peopleRawData = await readFile('people.json');
-      const people = JSON.parse(peopleRawData).people;
+  const { providerLocations } = matches[0].search.searchdata.search.data.search.searchResponse;
 
-      await Promise.all(people.map(person => {
-        return client.messages
-          .create({
-            body: `Hey ${person.firstName}! A vaccine appointment is available, go to ${url} to book it!`,
-            from: fromPhoneNumber,
-            to: person.phoneNumber
-          });
-      }));
-    }
+  console.log(`providerLocations: ${providerLocations}`);
 
-    await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 10));
+  const nextAvailabilities = providerLocations.filter(location => location.nextAvailability.startTime !== '');
+
+  console.log(`nextAvailabilities: ${nextAvailabilities}`);
+
+  if (nextAvailabilities.length > 0) {
+    const peopleRawData = await readFile('people.json');
+    const people = JSON.parse(peopleRawData).people;
+
+    await Promise.all(people.map(person => {
+      console.log(`Notifying ${JSON.stringify(person)}`);
+      return client.messages
+        .create({
+          body: `Hey ${person.firstName}! A vaccine appointment is available, go to ${url} to book it!`,
+          from: fromPhoneNumber,
+          to: person.phoneNumber
+        });
+    }));
   }
 })();
