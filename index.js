@@ -49,7 +49,11 @@ const directCrawler = async (url) => {
   });
 }
 
+let count = 0;
+
 (async () => {
+  console.log(`Execution count: ${count++}`);
+
   const url = 'https://www.zocdoc.com/vaccine/search/IL?flavor=state-search';
   const response = await directCrawler(url);
 
