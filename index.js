@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const fetch = require('node-fetch');
 const Crawler = require("crawler");
 const { readFile } = require('fs').promises;
