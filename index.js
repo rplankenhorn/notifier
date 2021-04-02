@@ -1,6 +1,12 @@
-var Crawler = require("crawler");
-var player = require("play-sound")((opts = {}));
-const { forever } = require("async");
+const fetch = require('node-fetch');
+const Crawler = require("crawler");
+const { readFile } = require('fs').promises;
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID || '';
+const authToken = process.env.TWILIO_AUTH_TOKEN || '';
+const fromPhoneNumber = process.env.TWILIO_FROM_NUMBER || '';
+const client = require('twilio')(accountSid, authToken);
+
 var crawler = new Crawler({
   maxConnections: 10,
   // This will be called for each crawled page
@@ -25,40 +31,54 @@ var crawler = new Crawler({
   },
 });
 
-player.play("./test.mp3");
-// setTimeout(() => player.play("./alert.wav"), 1500);
-// setTimeout(() => player.play("./alert.wav"), 3000);
-// setTimeout(() => player.play("./alert.wav"), 4500);
-
-forever(
-  function (next) {
+const directCrawler = async (url) => {
+  return new Promise((resolve, reject) => {
     crawler.direct({
-      uri: "https://www.zocdoc.com/vaccine/search/IL?flavor=state-search",
+      uri: url,
       skipEventRequest: false, // default to true, direct requests won't trigger Event:'request'
       callback: function (error, response) {
         if (error) {
-          console.log(error);
+          reject(error);
         } else {
-          const matches = response.body.match(/nextAvailability\\\":{(.+?)}/g);
-
-          matches.forEach((match, idx) => {
-            if (
-              match !==
-              'nextAvailability\\":{\\"startTime\\":\\"\\",\\"__typename\\":\\"Timeslot\\"}'
-            ) {
-              console.log(match, Date.now().toLocaleString());
-              player.play("./alert.mp3");
-              setTimeout(() => player.play("./alert.mp3"), 1500);
-              setTimeout(() => player.play("./alert.mp3"), 3000);
-              setTimeout(() => player.play("./alert.mp3"), 4500);
-            }
-          });
+          resolve(response);
         }
       },
     });
-    setTimeout(next, 1000 * 10);
-  },
-  function (err) {
-    process.exit(1);
+  });
+}
+
+(async () => {
+  while(true) {
+    const url = 'https://www.zocdoc.com/vaccine/search/IL?flavor=state-search';
+    const response = await directCrawler(url);
+
+    const regex = /JSON\.parse\((.*)\);/gm;
+
+    const matches = response.body.match(regex).map(match => {
+      let jsonString = match.replace('JSON.parse(\"', '');
+      jsonString = jsonString.replace('\");', '');
+      jsonString = jsonString.replace(/\\/g, '');
+      return JSON.parse(jsonString);
+    }).filter(match => Object.keys(match).length !== 0);
+
+    const { providerLocations } = matches[0].search.searchdata.search.data.search.searchResponse;
+
+    const nextAvailabilities = providerLocations.filter(location => location.nextAvailability.startTime !== '');
+
+    if (nextAvailabilities.length > 0) {
+      const peopleRawData = await readFile('people.json');
+      const people = JSON.parse(peopleRawData).people;
+
+      await Promise.all(people.map(person => {
+        return client.messages
+          .create({
+            body: `Hey ${person.firstName}! A vaccine appointment is available, go to ${url} to book it!`,
+            from: fromPhoneNumber,
+            to: person.phoneNumber
+          });
+      }));
+    }
+
+    await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 10));
   }
-);
+})();
