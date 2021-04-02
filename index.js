@@ -77,13 +77,16 @@ const directCrawler = async (url) => {
         console.log(`Notifying ${JSON.stringify(person)}`);
         return client.messages
           .create({
-                  body: `Hey ${person.firstName}! A vaccine appointment is available, go to ${url} to book it!`,
-                  from: fromPhoneNumber,
-                  to: person.phoneNumber
-                  });
-          }));
+            body: `Hey ${person.firstName}! A vaccine appointment is available, go to ${url} to book it!`,
+            from: fromPhoneNumber,
+            to: person.phoneNumber
+          });
+        }));
+      
+      console.log('Waiting 1 minute before resuming loop to prevent spam.')
+      await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 60));
+    } else {
+      await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 10));
     }
-
-    await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 10));
   }
 })();
