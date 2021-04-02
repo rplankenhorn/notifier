@@ -51,8 +51,6 @@ const directCrawler = async (url) => {
   const url = 'https://www.zocdoc.com/vaccine/search/IL?flavor=state-search';
   const response = await directCrawler(url);
 
-  console.log(`response: ${JSON.stringify(response)}`);
-
   const regex = /JSON\.parse\((.*)\);/gm;
 
   const matches = response.body.match(regex).map(match => {
@@ -62,15 +60,11 @@ const directCrawler = async (url) => {
     return JSON.parse(jsonString);
   }).filter(match => Object.keys(match).length !== 0);
 
-  console.log(`matches: ${JSON.stringify(matches)}`);
-
   const { providerLocations } = matches[0].search.searchdata.search.data.search.searchResponse;
-
-  console.log(`providerLocations: ${providerLocations}`);
 
   const nextAvailabilities = providerLocations.filter(location => location.nextAvailability.startTime !== '');
 
-  console.log(`nextAvailabilities: ${nextAvailabilities}`);
+  console.log(`nextAvailabilities: ${JSON.stringify(nextAvailabilities)}`);
 
   if (nextAvailabilities.length > 0) {
     const peopleRawData = await readFile('people.json');
