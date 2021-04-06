@@ -72,6 +72,16 @@ let people;
   });
 
   while(true) {    
+    const currentDate = new Date();
+    const hour = currentDate.getHours();
+    console.log(hour);
+
+    if (hour < 7 || hour > 22) {
+      console.log("Do not disturb hours.  Skipping everything.");
+      await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 60));
+      continue;
+    }
+
     const url = `https://www.zocdoc.com/vaccine/search/IL?flavor=state-search`;
     const nextAvailabilities = await getNextAvailableAppointments(url);
     
