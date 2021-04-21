@@ -17,6 +17,10 @@ const dbConnectionString = process.env.DB_URL || '';
 
 let people;
 
+const sleep = async (seconds) => {
+  await new Promise((resolve, reject) => setTimeout(resolve, 1000 * seconds));
+};
+
 (async () => {
   const dbClient = await MongoClient.connect(dbConnectionString, { useUnifiedTopology: true });
 
@@ -110,9 +114,9 @@ let people;
         }));
       
       console.log('Waiting 1 minute before resuming loop to prevent spam.')
-      await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 60));
+      await sleep(60);
     } else {
-      await new Promise((resolve, reject) => setTimeout(resolve, 1000 * 10));
+      await sleep(10);
     }
   }
 })();
