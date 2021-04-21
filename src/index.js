@@ -75,7 +75,15 @@ const sleep = async (seconds) => {
     console.log('Express server listening on port 8080');
   });
 
-  while(true) {    
+  while(true) {
+    const people = await peopleCollection.find().toArray();
+
+    if (people.length === 0) {
+      console.log('No one to notify.  Skipping crawling site.');
+      await sleep(60);
+      continue;
+    }
+
     const currentDate = new Date();
     const hour = currentDate.getHours();
     console.log(hour);
@@ -90,8 +98,6 @@ const sleep = async (seconds) => {
     const nextAvailabilities = await getNextAvailableAppointments(url);
     
     console.log(`nextAvailabilities: ${JSON.stringify(nextAvailabilities)}`);
-
-    const people = await peopleCollection.find().toArray();
     
     if (nextAvailabilities.length > 0) {
       await Promise.all(people.map(person => {
