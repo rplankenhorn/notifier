@@ -97,6 +97,15 @@ let people;
             body: `Hey! A vaccine appointment is available, go to ${url} to book it!`,
             from: fromPhoneNumber,
             to: person.phoneNumber
+          }).catch(err => {
+            const errString = err.toString();
+            if (errString.match(/blacklist/g)) {
+              console.log(`${person.phoneNumber} violates blacklist rule.  Deleting from DB.`);
+              return peopleCollection.deleteOne({
+                phoneNumber: person.phoneNumber
+              });
+            }
+            throw new Error(`Error sending message to ${person.phoneNumber}: ${errString}`);
           });
         }));
       
